@@ -1,0 +1,1113 @@
+<title>CyberGuard AI</title>
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap');
+
+:root { --acc:#FF4500; --low:#22c55e; --med:#f59e0b; --hgh:#f43f5e; }
+
+.font-serif { font-family: 'Instrument Serif', Georgia, serif; }
+
+/* ── LIQUID GLASS ── */
+.lg {
+  background: rgba(0,0,0,0.12);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: none;
+  box-shadow: inset 0 1px 1px rgba(255,255,255,0.1);
+  position: relative;
+  overflow: hidden;
+}
+.lg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.4px;
+  background: linear-gradient(180deg,
+    rgba(255,255,255,0.45) 0%,
+    rgba(255,255,255,0.15) 20%,
+    rgba(255,255,255,0.00) 40%,
+    rgba(255,255,255,0.00) 60%,
+    rgba(255,255,255,0.15) 80%,
+    rgba(255,255,255,0.45) 100%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+.lg-circle {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: none;
+  box-shadow: inset 0 1px 1px rgba(255,255,255,0.1);
+  position: relative;
+  overflow: hidden;
+}
+.lg-circle::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.4px;
+  background: linear-gradient(180deg,
+    rgba(255,255,255,0.45) 0%,
+    rgba(255,255,255,0.22) 30%,
+    rgba(255,255,255,0.16) 50%,
+    rgba(255,255,255,0.22) 70%,
+    rgba(255,255,255,0.45) 100%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* ── PAGES ── */
+.pg { display: none; }
+.pg.on { display: block; }
+@keyframes pg-in  { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+@keyframes pg-out { from{opacity:1;transform:translateY(0)} to{opacity:0;transform:translateY(-10px)} }
+.pg-entering { animation: pg-in  .38s cubic-bezier(.22,1,.36,1) both; }
+.pg-leaving  { animation: pg-out .22s ease-in both; pointer-events:none; }
+
+/* ── PROGRESS BAR ── */
+#pbar { position:fixed; top:0; left:0; height:2px; background:#FF4500;
+        z-index:300; width:0%; pointer-events:none;
+        box-shadow:0 0 10px #FF4500; transition:width .25s ease,opacity .5s ease; opacity:0; }
+
+/* ── SPINNER ── */
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { animation: spin .8s linear infinite; }
+
+/* ── RESULTS ── */
+@keyframes fadeup { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:translateY(0)} }
+.res-show { animation: fadeup .55s cubic-bezier(.22,1,.36,1) both; }
+
+/* ── VT BAR ── */
+@keyframes bar-grow { from{width:0} }
+.vt-seg { animation: bar-grow .9s cubic-bezier(.22,1,.36,1) both; }
+
+/* ── BADGE ── */
+@keyframes badge-in { from{opacity:0;transform:scale(.85)} to{opacity:1;transform:scale(1)} }
+.badge { animation: badge-in .35s cubic-bezier(.22,1,.36,1) both; display:inline-flex; align-items:center; gap:5px; padding:5px 13px; border-radius:99px; font-size:12px; font-weight:600; white-space:nowrap; }
+.b-hgh { background:rgba(244,63,94,.15); color:#f43f5e; border:1px solid rgba(244,63,94,.3); }
+.b-med { background:rgba(245,158,11,.15); color:#f59e0b; border:1px solid rgba(245,158,11,.3); }
+.b-low { background:rgba(34,197,94,.15);  color:#22c55e;  border:1px solid rgba(34,197,94,.3); }
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width:6px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:rgba(255,255,255,.12); border-radius:99px; }
+</style>
+
+<div id="pbar"></div>
+
+<div class="bg-black text-white min-h-screen selection:bg-white selection:text-black overflow-x-hidden">
+
+  <!-- ══ BACKGROUND CANVAS ══ -->
+  <canvas id="bg-canvas" class="fixed inset-0 w-full h-full z-0" style="opacity:0.9"></canvas>
+  <!-- dark overlay for readability -->
+  <div class="fixed inset-0 z-0" style="background:linear-gradient(180deg,rgba(0,0,0,.6) 0%,rgba(0,0,0,.5) 60%,rgba(0,0,0,.72) 100%)"></div>
+
+  <!-- ══ NAVBAR ══ -->
+  <nav class="fixed top-0 left-0 right-0 z-50 px-6 py-5">
+    <div class="lg rounded-full max-w-5xl mx-auto pl-6 pr-1.5 py-1.5 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <!-- logo icon -->
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 flex-shrink-0">
+          <path d="M12 3C7.03 3 3 7.03 3 12s4.03 9 9 9 9-4.03 9-9" stroke="#FF4500" stroke-width="2" stroke-linecap="round"/>
+          <path d="M16 3.5 A10 10 0 0 1 20.5 8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-dasharray="2.5 2.5"/>
+          <circle cx="12" cy="12" r="2.5" fill="white"/>
+        </svg>
+        <span class="font-semibold text-lg tracking-tight">CyberGuard</span>
+        <div class="hidden md:flex gap-6 ml-6">
+          <button onclick="go('home')" id="nl-home" class="nl-btn text-white/70 hover:text-white text-sm font-medium transition-colors">Início</button>
+          <button onclick="go('url')"  id="nl-url"  class="nl-btn text-white/70 hover:text-white text-sm font-medium transition-colors">Verificar Link</button>
+          <button onclick="go('msg')"  id="nl-msg"  class="nl-btn text-white/70 hover:text-white text-sm font-medium transition-colors">Mensagem</button>
+          <button onclick="go('file')" id="nl-file" class="nl-btn text-white/70 hover:text-white text-sm font-medium transition-colors">Ficheiro</button>
+          <button onclick="go('hist')" id="nl-hist" class="nl-btn text-white/70 hover:text-white text-sm font-medium transition-colors">Histórico</button>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <button onclick="go('url')" class="bg-white rounded-full px-5 py-2 text-black text-sm font-semibold whitespace-nowrap hover:scale-105 transition-transform duration-200">
+          Verificar agora
+        </button>
+        <button onclick="toggleDrawer()" id="ham" class="md:hidden lg-circle w-10 h-10 flex items-center justify-center rounded-full text-white/80">
+          <iconify-icon icon="lucide:menu" class="text-lg"></iconify-icon>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ══ MOBILE DRAWER ══ -->
+  <div id="drawer" class="hidden fixed inset-0 z-40 bg-black/95 flex-col justify-center px-8 py-24 gap-3">
+    <button onclick="go('home');toggleDrawer()" class="font-serif text-5xl text-white/50 hover:text-white text-left py-2 transition-colors">Início</button>
+    <button onclick="go('url');toggleDrawer()"  class="font-serif text-5xl text-white/50 hover:text-white text-left py-2 transition-colors">Link</button>
+    <button onclick="go('msg');toggleDrawer()"  class="font-serif text-5xl text-white/50 hover:text-white text-left py-2 transition-colors">Mensagem</button>
+    <button onclick="go('file');toggleDrawer()" class="font-serif text-5xl text-white/50 hover:text-white text-left py-2 transition-colors">Ficheiro</button>
+    <button onclick="go('hist');toggleDrawer()" class="font-serif text-5xl text-white/50 hover:text-white text-left py-2 transition-colors">Histórico</button>
+  </div>
+
+  <!-- ══════════════════════════════════ PAGE: HOME ══════════════════════════════════ -->
+  <div class="pg on relative z-10" id="pg-home">
+
+    <!-- HERO -->
+    <section class="min-h-screen flex flex-col items-center justify-center px-6 text-center -translate-y-[8%] relative overflow-hidden">
+      <h1 class="font-serif text-6xl md:text-7xl lg:text-8xl tracking-tight whitespace-nowrap mb-5"
+          style="text-shadow:0 0 72px rgba(0,0,0,.6),0 4px 28px rgba(0,0,0,.5)">
+        Navega com <em class="italic" style="color:#FF4500">segurança.</em>
+      </h1>
+      <p class="text-white/65 text-sm leading-relaxed max-w-xl md:whitespace-nowrap mb-10"
+         style="text-shadow:0 0 30px rgba(0,0,0,.5),0 1px 10px rgba(0,0,0,.4)">
+        Cola um link, mensagem ou ficheiro suspeito — a IA e o VirusTotal analisam os sinais invisíveis.
+      </p>
+      <!-- scan input pill -->
+      <div class="max-w-xl w-full">
+        <div class="lg rounded-full pl-6 pr-1.5 py-1.5 flex items-center gap-3">
+          <input type="text" id="hero-inp" placeholder="Cola um URL suspeito aqui…"
+                 class="bg-transparent border-none outline-none flex-1 text-white placeholder:text-white/70 text-sm"
+                 onkeydown="if(event.key==='Enter'){go('url');setTimeout(()=>{document.getElementById('url-inp').value=this.value;analyzeUrl();},300)}">
+          <button onclick="go('url');setTimeout(()=>{document.getElementById('url-inp').value=document.getElementById('hero-inp').value;analyzeUrl();},300)"
+                  class="bg-white rounded-full px-6 py-3 text-black text-sm font-semibold whitespace-nowrap hover:scale-105 transition-transform duration-200">
+            Verificar
+          </button>
+        </div>
+      </div>
+      <div class="flex items-center gap-4 mt-8 text-white/30 text-xs tracking-widest uppercase"
+           style="text-shadow:0 0 20px rgba(0,0,0,.8)">
+        <span id="clk">--:-- --</span>
+        <span class="w-px h-3 bg-white/20"></span>
+        <span>CyberGuard AI</span>
+        <span class="w-px h-3 bg-white/20"></span>
+        <span>VirusTotal</span>
+      </div>
+    </section>
+
+    <!-- HANDS REMOVED -->
+    <div class="hand-wrap hand-left" id="hand-left" style="display:none">
+      <svg viewBox="0 0 340 440" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="hgL" x1="0%" y1="100%" x2="100%" y2="0%">
+            <stop offset="0%"   stop-color="#1a0000"/>
+            <stop offset="35%"  stop-color="#6b0a00"/>
+            <stop offset="65%"  stop-color="#c01800"/>
+            <stop offset="100%" stop-color="#e02000"/>
+          </linearGradient>
+          <linearGradient id="hgLh" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%"   stop-color="rgba(255,80,30,0.0)"/>
+            <stop offset="60%"  stop-color="rgba(255,80,30,0.18)"/>
+            <stop offset="100%" stop-color="rgba(255,80,30,0.0)"/>
+          </linearGradient>
+        </defs>
+        <!-- wrist / base of palm -->
+        <path d="M 30 440 C 30 440 45 380 60 340 C 70 315 75 295 80 280
+                 C 85 265 88 252 90 242 C 92 232 93 224 94 218
+                 C 95 212 96 207 97 203 C 99 195 105 190 113 192
+                 C 121 194 124 202 123 212 C 122 220 120 232 118 244
+                 C 116 254 114 263 113 270 C 115 268 118 260 121 248
+                 C 125 232 130 210 135 194 C 139 180 146 172 156 173
+                 C 165 174 170 184 168 198 C 166 212 160 232 155 252
+                 C 152 263 150 272 149 279 C 152 274 156 263 161 249
+                 C 168 229 175 206 181 190 C 186 176 194 169 203 170
+                 C 212 171 216 181 214 196 C 212 210 205 233 199 255
+                 C 195 268 192 278 191 286 C 195 278 200 266 206 252
+                 C 214 232 222 212 230 198 C 237 186 245 180 254 182
+                 C 262 184 266 194 263 208 C 260 220 253 238 245 258
+                 C 238 275 232 290 229 302 C 234 296 242 282 250 268
+                 C 260 250 270 238 279 238 C 288 238 292 248 289 261
+                 C 286 274 278 292 268 312 C 257 333 244 354 233 370
+                 C 220 388 204 403 188 413 C 172 423 152 429 132 432
+                 C 112 435 75 438 30 440 Z"
+              fill="url(#hgL)"/>
+        <!-- highlight sheen -->
+        <path d="M 95 210 C 105 200 130 195 158 200 C 180 204 210 200 240 205 C 260 208 275 218 278 232 C 268 220 250 214 230 212 C 208 210 185 214 165 210 C 145 206 120 208 103 218 Z"
+              fill="url(#hgLh)" opacity=".7"/>
+        <!-- finger separation shadows -->
+        <path d="M 118 244 C 116 252 115 260 114 268" stroke="rgba(0,0,0,0.4)" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M 150 278 C 149 286 148 294 148 300" stroke="rgba(0,0,0,0.4)" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M 190 286 C 189 294 188 302 187 308" stroke="rgba(0,0,0,0.4)" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M 229 302 C 228 312 226 320 224 328" stroke="rgba(0,0,0,0.35)" stroke-width="1.5" stroke-linecap="round"/>
+        <!-- knuckle hints -->
+        <ellipse cx="110" cy="270" rx="8" ry="5" fill="rgba(0,0,0,0.15)" transform="rotate(-15 110 270)"/>
+        <ellipse cx="148" cy="280" rx="8" ry="5" fill="rgba(0,0,0,0.15)" transform="rotate(-10 148 280)"/>
+        <ellipse cx="190" cy="288" rx="8" ry="5" fill="rgba(0,0,0,0.15)" transform="rotate(-5 190 288)"/>
+        <ellipse cx="228" cy="304" rx="8" ry="5" fill="rgba(0,0,0,0.12)" transform="rotate(5 228 304)"/>
+        <!-- rim light -->
+        <path d="M 97 203 C 100 192 108 187 116 189 C 109 188 102 193 100 203
+                 M 135 173 C 140 168 150 169 157 174
+                 M 181 170 C 187 165 196 166 203 171
+                 M 230 182 C 237 178 246 180 253 185"
+              stroke="rgba(255,100,40,0.4)" stroke-width="1" fill="none"/>
+      </svg>
+    </div>
+    <div class="hand-wrap hand-right" id="hand-right" style="display:none">
+      <svg viewBox="0 0 340 440" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="hgR" x1="0%" y1="100%" x2="100%" y2="0%">
+            <stop offset="0%"   stop-color="#1a0000"/>
+            <stop offset="35%"  stop-color="#6b0a00"/>
+            <stop offset="65%"  stop-color="#c01800"/>
+            <stop offset="100%" stop-color="#e02000"/>
+          </linearGradient>
+        </defs>
+        <path d="M 30 440 C 30 440 45 380 60 340 C 70 315 75 295 80 280
+                 C 85 265 88 252 90 242 C 92 232 93 224 94 218
+                 C 95 212 96 207 97 203 C 99 195 105 190 113 192
+                 C 121 194 124 202 123 212 C 122 220 120 232 118 244
+                 C 116 254 114 263 113 270 C 115 268 118 260 121 248
+                 C 125 232 130 210 135 194 C 139 180 146 172 156 173
+                 C 165 174 170 184 168 198 C 166 212 160 232 155 252
+                 C 152 263 150 272 149 279 C 152 274 156 263 161 249
+                 C 168 229 175 206 181 190 C 186 176 194 169 203 170
+                 C 212 171 216 181 214 196 C 212 210 205 233 199 255
+                 C 195 268 192 278 191 286 C 195 278 200 266 206 252
+                 C 214 232 222 212 230 198 C 237 186 245 180 254 182
+                 C 262 184 266 194 263 208 C 260 220 253 238 245 258
+                 C 238 275 232 290 229 302 C 234 296 242 282 250 268
+                 C 260 250 270 238 279 238 C 288 238 292 248 289 261
+                 C 286 274 278 292 268 312 C 257 333 244 354 233 370
+                 C 220 388 204 403 188 413 C 172 423 152 429 132 432
+                 C 112 435 75 438 30 440 Z"
+              fill="url(#hgR)"/>
+        <path d="M 118 244 C 116 252 115 260 114 268" stroke="rgba(0,0,0,0.4)" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M 150 278 C 149 286 148 294 148 300" stroke="rgba(0,0,0,0.4)" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M 190 286 C 189 294 188 302 187 308" stroke="rgba(0,0,0,0.4)" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M 229 302 C 228 312 226 320 224 328" stroke="rgba(0,0,0,0.35)" stroke-width="1.5" stroke-linecap="round"/>
+        <ellipse cx="110" cy="270" rx="8" ry="5" fill="rgba(0,0,0,0.15)" transform="rotate(-15 110 270)"/>
+        <ellipse cx="148" cy="280" rx="8" ry="5" fill="rgba(0,0,0,0.15)" transform="rotate(-10 148 280)"/>
+        <ellipse cx="190" cy="288" rx="8" ry="5" fill="rgba(0,0,0,0.15)" transform="rotate(-5 190 288)"/>
+        <ellipse cx="228" cy="304" rx="8" ry="5" fill="rgba(0,0,0,0.12)" transform="rotate(5 228 304)"/>
+        <path d="M 97 203 C 100 192 108 187 116 189 M 135 173 C 140 168 150 169 157 174 M 181 170 C 187 165 196 166 203 171 M 230 182 C 237 178 246 180 253 185"
+              stroke="rgba(255,100,40,0.4)" stroke-width="1" fill="none"/>
+      </svg>
+    </div>
+
+    <!-- TOOL CARDS -->
+    <div class="relative z-10 max-w-4xl mx-auto px-6 pb-24">
+      <h2 class="font-serif text-4xl md:text-5xl text-center mb-12"
+          style="text-shadow:0 0 40px rgba(0,0,0,.7)">
+        Três ferramentas. <em class="italic text-white/40">Um objetivo.</em>
+      </h2>
+      <div class="grid md:grid-cols-3 gap-4">
+        <!-- URL -->
+        <button onclick="go('url')" class="lg rounded-3xl p-7 text-left flex flex-col gap-3 hover:-translate-y-1 transition-transform duration-300 group"
+                style="background:rgba(255,69,0,.15)">
+          <span class="text-xs text-white/40 tracking-widest self-end">01</span>
+          <span class="text-3xl">🔗</span>
+          <span class="font-serif text-2xl">Verificar Link</span>
+          <span class="text-sm text-white/55 font-light leading-relaxed">72+ motores do VirusTotal analisam o URL em tempo real.</span>
+          <span class="text-xs text-white/30 mt-auto group-hover:text-white/60 transition-colors">Verificar agora →</span>
+        </button>
+        <!-- MSG -->
+        <button onclick="go('msg')" class="lg rounded-3xl p-7 text-left flex flex-col gap-3 hover:-translate-y-1 transition-transform duration-300 group">
+          <span class="text-xs text-white/40 tracking-widest self-end">02</span>
+          <span class="text-3xl">✉️</span>
+          <span class="font-serif text-2xl">Verificar Mensagem</span>
+          <span class="text-sm text-white/55 font-light leading-relaxed">Detetamos phishing, urgência falsa e links encurtados.</span>
+          <span class="text-xs text-white/30 mt-auto group-hover:text-white/60 transition-colors">Verificar agora →</span>
+        </button>
+        <!-- FILE -->
+        <button onclick="go('file')" class="lg rounded-3xl p-7 text-left flex flex-col gap-3 hover:-translate-y-1 transition-transform duration-300 group">
+          <span class="text-xs text-white/40 tracking-widest self-end">03</span>
+          <span class="text-3xl">📁</span>
+          <span class="font-serif text-2xl">Verificar Ficheiro</span>
+          <span class="text-sm text-white/55 font-light leading-relaxed">Upload seguro e scan com 70+ motores antivírus.</span>
+          <span class="text-xs text-white/30 mt-auto group-hover:text-white/60 transition-colors">Verificar agora →</span>
+        </button>
+      </div>
+      <!-- stats row -->
+      <div class="grid grid-cols-3 gap-4 mt-4">
+        <div class="lg rounded-2xl p-6 text-center">
+          <div class="font-serif text-5xl mb-2" style="color:#FF4500" id="s-total">0</div>
+          <div class="text-xs text-white/40 uppercase tracking-widest">Análises</div>
+        </div>
+        <div class="lg rounded-2xl p-6 text-center">
+          <div class="font-serif text-5xl mb-2 text-red-400" id="s-danger">0</div>
+          <div class="text-xs text-white/40 uppercase tracking-widest">Ameaças</div>
+        </div>
+        <div class="lg rounded-2xl p-6 text-center">
+          <div class="font-serif text-5xl mb-2 text-green-400" id="s-safe">0</div>
+          <div class="text-xs text-white/40 uppercase tracking-widest">Seguros</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SOCIAL ROW -->
+    <div class="relative z-10 flex justify-center gap-4 pb-12">
+      <button class="lg-circle w-14 h-14 flex items-center justify-center rounded-full text-white/60 hover:text-white hover:bg-white/5 transition-all">
+        <iconify-icon icon="lucide:instagram" class="text-xl"></iconify-icon>
+      </button>
+      <button class="lg-circle w-14 h-14 flex items-center justify-center rounded-full text-white/60 hover:text-white hover:bg-white/5 transition-all">
+        <iconify-icon icon="lucide:twitter" class="text-xl"></iconify-icon>
+      </button>
+      <button class="lg-circle w-14 h-14 flex items-center justify-center rounded-full text-white/60 hover:text-white hover:bg-white/5 transition-all">
+        <iconify-icon icon="lucide:globe" class="text-xl"></iconify-icon>
+      </button>
+    </div>
+
+  </div>
+
+  <!-- ══════════════════════════════════ PAGE: URL ══════════════════════════════════ -->
+  <div class="pg relative z-10 pt-28 pb-24" id="pg-url">
+    <div class="max-w-2xl mx-auto px-6">
+      <h1 class="font-serif text-5xl md:text-6xl mb-3"
+          style="text-shadow:0 0 60px rgba(0,0,0,.8)">
+        Verificar<br><em class="italic text-white/40">um link.</em>
+      </h1>
+      <p class="text-white/50 text-sm mb-10 font-light">URL suspeito? O VirusTotal + 70 motores analisam em tempo real.</p>
+
+      <div class="lg rounded-2xl p-6 mb-4">
+        <label class="block text-xs text-white/30 uppercase tracking-widest mb-3">URL a verificar</label>
+        <input id="url-inp" type="text" placeholder="https://exemplo.com/link"
+               class="w-full bg-transparent border-none outline-none text-white placeholder:text-white/30 text-sm mb-5"
+               onkeydown="if(event.key==='Enter')analyzeUrl()">
+        <button id="url-btn" onclick="analyzeUrl()"
+                class="bg-white rounded-full px-6 py-3 text-black text-sm font-semibold hover:scale-105 transition-transform duration-200">
+          Verificar este link →
+        </button>
+      </div>
+
+      <!-- loader -->
+      <div id="url-loader" class="hidden lg rounded-2xl p-5 flex items-center gap-4 mb-4">
+        <div class="w-5 h-5 rounded-full border-2 border-white/20 border-t-orange-500 spin flex-shrink-0"></div>
+        <div class="text-sm text-white/60"><strong id="url-loader-step" class="text-white">A enviar para o VirusTotal...</strong><br>Aguarda enquanto 70+ motores analisam.</div>
+      </div>
+
+      <!-- error -->
+      <div id="url-err" class="hidden lg rounded-2xl p-5 mb-4 text-sm text-white/60"
+           style="background:rgba(244,63,94,.08);border-left:3px solid #f43f5e"></div>
+
+      <!-- result -->
+      <div id="url-res" class="hidden"></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════ PAGE: MSG ══════════════════════════════════ -->
+  <div class="pg relative z-10 pt-28 pb-24" id="pg-msg">
+    <div class="max-w-2xl mx-auto px-6">
+      <h1 class="font-serif text-5xl md:text-6xl mb-3"
+          style="text-shadow:0 0 60px rgba(0,0,0,.8)">
+        Verificar<br><em class="italic text-white/40">uma mensagem.</em>
+      </h1>
+      <p class="text-white/50 text-sm mb-10 font-light">Cola o email ou SMS — detetamos links perigosos e engenharia social.</p>
+
+      <div class="lg rounded-2xl p-6 mb-4">
+        <label class="block text-xs text-white/30 uppercase tracking-widest mb-3">Mensagem a verificar</label>
+        <textarea id="msg-inp" placeholder="Cola aqui o texto da mensagem..."
+                  class="w-full bg-transparent border-none outline-none text-white placeholder:text-white/30 text-sm resize-none mb-5"
+                  style="min-height:130px;line-height:1.65"></textarea>
+        <button id="msg-btn" onclick="analyzeMsg()"
+                class="bg-white rounded-full px-6 py-3 text-black text-sm font-semibold hover:scale-105 transition-transform duration-200">
+          Analisar esta mensagem →
+        </button>
+      </div>
+
+      <div id="msg-loader" class="hidden lg rounded-2xl p-5 flex items-center gap-4 mb-4">
+        <div class="w-5 h-5 rounded-full border-2 border-white/20 border-t-orange-500 spin flex-shrink-0"></div>
+        <div class="text-sm text-white/60"><strong id="msg-loader-step" class="text-white">A analisar...</strong><br>A verificar links e padrões de phishing.</div>
+      </div>
+      <div id="msg-err" class="hidden lg rounded-2xl p-5 mb-4 text-sm text-white/60"
+           style="background:rgba(244,63,94,.08);border-left:3px solid #f43f5e"></div>
+      <div id="msg-res" class="hidden"></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════ PAGE: FILE ══════════════════════════════════ -->
+  <div class="pg relative z-10 pt-28 pb-24" id="pg-file">
+    <div class="max-w-2xl mx-auto px-6">
+      <h1 class="font-serif text-5xl md:text-6xl mb-3"
+          style="text-shadow:0 0 60px rgba(0,0,0,.8)">
+        Verificar<br><em class="italic text-white/40">um ficheiro.</em>
+      </h1>
+      <p class="text-white/50 text-sm mb-10 font-light">Upload seguro — 70+ motores antivírus. Máx. 32MB (conta gratuita VT).</p>
+
+      <div class="lg rounded-2xl p-5 flex gap-3 items-start mb-6"
+           style="background:rgba(245,158,11,.06);border-left:3px solid rgba(245,158,11,.4)">
+        <span class="text-base flex-shrink-0">🔒</span>
+        <span class="text-sm text-white/50 font-light leading-relaxed">O ficheiro é enviado ao VirusTotal de forma segura. Os resultados ficam na base de dados pública do VirusTotal — não envies ficheiros confidenciais.</span>
+      </div>
+
+      <div class="lg rounded-2xl p-6 mb-4">
+        <label class="block text-xs text-white/30 uppercase tracking-widest mb-3">Ficheiro a verificar</label>
+        <input id="file-inp" type="file"
+               class="w-full bg-transparent text-white/60 text-sm mb-5 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-medium file:bg-white/10 file:text-white hover:file:bg-white/20">
+        <button id="file-btn" onclick="analyzeFile()"
+                class="bg-white rounded-full px-6 py-3 text-black text-sm font-semibold hover:scale-105 transition-transform duration-200">
+          Verificar ficheiro →
+        </button>
+      </div>
+
+      <div id="file-loader" class="hidden lg rounded-2xl p-5 flex items-center gap-4 mb-4">
+        <div class="w-5 h-5 rounded-full border-2 border-white/20 border-t-orange-500 spin flex-shrink-0"></div>
+        <div class="text-sm text-white/60"><strong id="file-loader-step" class="text-white">A enviar para o VirusTotal...</strong><br>O upload pode demorar alguns segundos.</div>
+      </div>
+      <div id="file-err" class="hidden lg rounded-2xl p-5 mb-4 text-sm text-white/60"
+           style="background:rgba(244,63,94,.08);border-left:3px solid #f43f5e"></div>
+      <div id="file-res" class="hidden"></div>
+
+      <div class="lg rounded-2xl p-6 mt-6">
+        <div class="text-xs text-white/30 uppercase tracking-widest mb-4">O que verificamos</div>
+        <div class="flex flex-col gap-3">
+          <div class="flex gap-3 items-center text-sm text-white/50 font-light"><span class="text-green-400">✓</span> Nome, extensão e tamanho</div>
+          <div class="flex gap-3 items-center text-sm text-white/50 font-light"><span class="text-green-400">✓</span> Hash SHA-256 — impressão digital única</div>
+          <div class="flex gap-3 items-center text-sm text-white/50 font-light"><span class="text-green-400">✓</span> 70+ motores antivírus via VirusTotal</div>
+          <div class="flex gap-3 items-center text-sm text-white/50 font-light"><span class="text-yellow-400">⚠</span> Os resultados ficam na base de dados pública do VT</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════ PAGE: HIST ══════════════════════════════════ -->
+  <div class="pg relative z-10 pt-28 pb-24" id="pg-hist">
+    <div class="max-w-4xl mx-auto px-6">
+      <div class="flex items-end justify-between gap-4 mb-10 flex-wrap">
+        <div>
+          <h1 class="font-serif text-5xl md:text-6xl mb-1" style="text-shadow:0 0 60px rgba(0,0,0,.8)">Histórico.</h1>
+          <p class="text-white/40 text-sm font-light" id="hist-count">0 análises realizadas</p>
+        </div>
+        <button onclick="clearHistory()"
+                class="lg rounded-full px-5 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors">
+          Apagar histórico
+        </button>
+      </div>
+      <div class="lg rounded-3xl overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-white/8">
+                <th class="text-left px-5 py-3.5 text-xs text-white/30 uppercase tracking-widest font-medium">#</th>
+                <th class="text-left px-5 py-3.5 text-xs text-white/30 uppercase tracking-widest font-medium">Tipo</th>
+                <th class="text-left px-5 py-3.5 text-xs text-white/30 uppercase tracking-widest font-medium">Conteúdo</th>
+                <th class="text-left px-5 py-3.5 text-xs text-white/30 uppercase tracking-widest font-medium">Resultado</th>
+                <th class="text-left px-5 py-3.5 text-xs text-white/30 uppercase tracking-widest font-medium">Data</th>
+              </tr>
+            </thead>
+            <tbody id="hist-body">
+              <tr><td colspan="5" class="text-center text-white/20 py-10 text-sm">Nenhuma análise ainda</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ═══════════════════════════════════════
+   STORAGE & HISTORY
+═══════════════════════════════════════ */
+const VT_KEY = '62b147226a28bcb316836994379befb8f66e786a2942669c2a5768bb665c2cc1';
+let history = [];
+try { history = JSON.parse(localStorage.getItem('cg_history') || '[]'); } catch {}
+function saveHistory() { try { localStorage.setItem('cg_history', JSON.stringify(history.slice(0,100))); } catch {} }
+function addHistory(type, content, risk) {
+  history.unshift({ type, content, risk, date: new Date().toLocaleString('pt-PT',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) });
+  saveHistory(); updateStats(); renderHistory();
+}
+function countUp(el, target) {
+  const prev = parseInt(el.textContent)||0;
+  if (prev===target) return;
+  const start = performance.now(), dur = 700;
+  function step(now) {
+    const t = Math.min((now-start)/dur,1);
+    const e = 1-Math.pow(1-t,3);
+    el.textContent = Math.round(prev+(target-prev)*e);
+    if (t<1) requestAnimationFrame(step); else el.textContent = target;
+  }
+  requestAnimationFrame(step);
+}
+function updateStats() {
+  countUp(document.getElementById('s-total'),  history.length);
+  countUp(document.getElementById('s-danger'), history.filter(h=>h.risk==='high').length);
+  countUp(document.getElementById('s-safe'),   history.filter(h=>h.risk==='low').length);
+}
+function renderHistory() {
+  document.getElementById('hist-count').textContent = history.length + ' análises realizadas';
+  const tbody = document.getElementById('hist-body');
+  if (!history.length) { tbody.innerHTML='<tr><td colspan="5" class="text-center text-white/20 py-10 text-sm">Nenhuma análise ainda</td></tr>'; return; }
+  const icons = {url:'🔗',msg:'✉️',file:'📁'}, labels={url:'Link',msg:'Mensagem',file:'Ficheiro'};
+  tbody.innerHTML = history.map((h,i)=>`
+    <tr class="border-b border-white/5 hover:bg-white/3 transition-colors">
+      <td class="px-5 py-3.5 text-white/25">${history.length-i}</td>
+      <td class="px-5 py-3.5 text-white/50">${icons[h.type]||'?'} ${labels[h.type]||''}</td>
+      <td class="px-5 py-3.5 text-white/50 max-w-xs truncate">${esc(h.content)}</td>
+      <td class="px-5 py-3.5">${badgeHtml(h.risk)}</td>
+      <td class="px-5 py-3.5 text-white/30 whitespace-nowrap text-xs">${esc(h.date)}</td>
+    </tr>`).join('');
+}
+function clearHistory() {
+  history=[]; saveHistory(); updateStats(); renderHistory();
+}
+function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function badgeHtml(risk) {
+  if(risk==='high')   return '<span class="badge b-hgh">⚠ Perigoso</span>';
+  if(risk==='medium') return '<span class="badge b-med">👀 Suspeito</span>';
+  return '<span class="badge b-low">✓ Seguro</span>';
+}
+
+/* ═══════════════════════════════════════
+   PROGRESS BAR
+═══════════════════════════════════════ */
+const pbar = document.getElementById('pbar');
+let pbarTimer;
+function pbarStart() {
+  clearInterval(pbarTimer); pbar.style.opacity='1'; pbar.style.transition='width .25s ease,opacity .5s ease';
+  let w=5; pbar.style.width=w+'%';
+  pbarTimer = setInterval(()=>{ w=Math.min(w+(90-w)*0.08,88); pbar.style.width=w+'%'; },300);
+}
+function pbarDone() {
+  clearInterval(pbarTimer); pbar.style.width='100%';
+  setTimeout(()=>{ pbar.style.opacity='0'; setTimeout(()=>{ pbar.style.width='0%'; pbar.style.transition='none'; },500); },300);
+}
+
+/* ═══════════════════════════════════════
+   VIRUSTOTAL API
+═══════════════════════════════════════ */
+const VT = 'https://www.virustotal.com/api/v3';
+class CorsError extends Error { constructor(){ super('CORS'); this.isCors=true; } }
+async function vtPost(path, body, fd) {
+  const opts = { method:'POST', headers:{'x-apikey':VT_KEY}, mode:'cors', credentials:'omit' };
+  if (fd instanceof FormData) { opts.body=fd; }
+  else { opts.headers['content-type']='application/x-www-form-urlencoded'; opts.body=body; }
+  let r; try { r=await fetch(VT+path,opts); } catch { throw new CorsError(); }
+  if (r.status===429) throw new Error('Limite da API atingido. Aguarda 1 minuto.');
+  if (!r.ok) { const t=await r.text(); throw new Error('Erro VT: '+r.status+' — '+t.slice(0,200)); }
+  return r.json();
+}
+async function vtGet(path) {
+  let r; try { r=await fetch(VT+path,{headers:{'x-apikey':VT_KEY},mode:'cors',credentials:'omit'}); } catch { throw new CorsError(); }
+  if (r.status===429) throw new Error('Limite da API atingido.');
+  if (!r.ok) throw new Error('Erro VT: '+r.status);
+  return r.json();
+}
+async function waitAnalysis(id, setStep) {
+  for (let i=0;i<20;i++) {
+    await new Promise(r=>setTimeout(r,2500));
+    const d = await vtGet('/analyses/'+id);
+    setStep('A aguardar resultados'+'.'.repeat((i%3)+1));
+    if (d.data.attributes.status==='completed') return d.data.attributes;
+  }
+  throw new Error('Análise demorou demasiado. Tenta novamente.');
+}
+
+/* ═══════════════════════════════════════
+   RENDER HELPERS
+═══════════════════════════════════════ */
+function getVtRisk(stats) {
+  const m=stats.malicious||0, s=stats.suspicious||0;
+  if(m>=3) return 'high'; if(m>=1||s>=3) return 'medium'; return 'low';
+}
+function renderResult(prefix, risk, verdict, hint, vtHtml) {
+  const colors = {high:'rgba(244,63,94,.08)',medium:'rgba(245,158,11,.08)',low:'rgba(34,197,94,.06)'};
+  const borders = {high:'rgba(244,63,94,.25)',medium:'rgba(245,158,11,.25)',low:'rgba(34,197,94,.2)'};
+  const el = document.getElementById(prefix+'-res');
+  el.className = 'res-show';
+  el.style.cssText = `display:block;border-radius:20px;padding:28px 32px;background:${colors[risk]};border:1px solid ${borders[risk]}`;
+  el.innerHTML = `
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:6px">
+      <div class="font-serif" style="font-size:1.8rem;line-height:1.1">${esc(verdict)}</div>
+      ${badgeHtml(risk)}
+    </div>
+    <div style="font-size:14px;color:rgba(255,255,255,.5);margin-bottom:20px;font-weight:300">${esc(hint)}</div>
+    ${vtHtml}`;
+}
+function renderVtStats(stats, analysisId, type) {
+  const m=stats.malicious||0, s=stats.suspicious||0, h=(stats.harmless||0)+(stats.undetected||0);
+  const total = m+s+h+(stats.failure||0)+(stats.timeout||0);
+  const pm=total?(m/total*100).toFixed(1):0, ps=total?(s/total*100).toFixed(1):0, ph=total?(h/total*100).toFixed(1):0;
+  return `
+    <div style="font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.14em;color:rgba(255,255,255,.3);margin-bottom:10px">VirusTotal — ${total} motores</div>
+    <div style="display:flex;height:6px;border-radius:99px;overflow:hidden;margin-bottom:10px;gap:2px">
+      ${m?`<div class="vt-seg" style="background:#f43f5e;width:${pm}%"></div>`:''}
+      ${s?`<div class="vt-seg" style="background:#f59e0b;width:${ps}%"></div>`:''}
+      ${h?`<div class="vt-seg" style="background:#22c55e;flex:${h?1:0}"></div>`:''}
+    </div>
+    <div style="display:flex;gap:20px;font-size:13px;margin-bottom:20px">
+      <span style="color:rgba(255,255,255,.5)"><strong style="color:#f43f5e">${m}</strong> maliciosos</span>
+      <span style="color:rgba(255,255,255,.5)"><strong style="color:#f59e0b">${s}</strong> suspeitos</span>
+      <span style="color:rgba(255,255,255,.5)"><strong style="color:#22c55e">${h}</strong> limpos</span>
+    </div>`;
+}
+function renderEngines(results) {
+  const det = Object.entries(results||{}).filter(([,v])=>v.category==='malicious'||v.category==='suspicious').slice(0,5);
+  if (!det.length) return '';
+  return `<div style="font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.14em;color:rgba(255,255,255,.3);margin-bottom:10px">Deteções</div>
+    <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:20px">
+      ${det.map(([n,v])=>`<div style="display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:8px 12px;background:rgba(244,63,94,.06);border:1px solid rgba(244,63,94,.12);border-radius:8px;font-size:13px">
+        <span style="color:rgba(255,255,255,.6)">${esc(n)}</span>
+        <span style="font-size:12px;font-weight:600;color:#f43f5e">${esc(v.result||v.category)}</span>
+      </div>`).join('')}
+    </div>`;
+}
+function renderLocalIndicators(indicators) {
+  if (!indicators.length) return '';
+  return `<div style="font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.14em;color:rgba(255,255,255,.3);margin-bottom:10px;margin-top:16px">Análise local</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      ${indicators.map(i=>`<div style="display:grid;grid-template-columns:22px 1fr;gap:10px;align-items:start;padding:10px 14px;background:rgba(244,63,94,.05);border:1px solid rgba(244,63,94,.12);border-radius:9px;font-size:13.5px;color:rgba(255,255,255,.6);font-weight:300">
+        <div style="width:18px;height:18px;border-radius:99px;background:rgba(244,63,94,.2);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#f43f5e;flex-shrink:0">!</div>
+        <span>${esc(i)}</span>
+      </div>`).join('')}
+    </div>`;
+}
+function corsWarning(msg) {
+  return `<div style="background:rgba(255,69,0,.08);border:1px solid rgba(255,69,0,.2);border-radius:12px;padding:16px 20px;margin-bottom:16px">
+    <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.14em;color:#FF4500;margin-bottom:8px">⚠ VirusTotal indisponível</div>
+    <div style="font-size:13.5px;color:rgba(255,255,255,.5);font-weight:300;line-height:1.6">${msg}</div>
+  </div>`;
+}
+
+/* ═══════════════════════════════════════
+   URL ANALYSIS
+═══════════════════════════════════════ */
+async function analyzeUrl() {
+  const url = document.getElementById('url-inp').value.trim();
+  if (!url) return;
+  const btn=document.getElementById('url-btn'), loader=document.getElementById('url-loader'),
+        res=document.getElementById('url-res'), err=document.getElementById('url-err');
+  const setStep = t => document.getElementById('url-loader-step').textContent = t;
+  btn.disabled=true; res.style.display='none'; err.style.display='none';
+  loader.style.display='flex'; pbarStart();
+  try {
+    setStep('A enviar para o VirusTotal...');
+    try {
+      const sub = await vtPost('/urls','url='+encodeURIComponent(url));
+      const attrs = await waitAnalysis(sub.data.id, setStep);
+      const risk = getVtRisk(attrs.stats);
+      const verdicts = {high:'Cuidado — parece uma ameaça.',medium:'Suspeito — tem cuidado.',low:'Parece seguro.'};
+      const hints = {
+        high:`${attrs.stats.malicious||0} motor(es) detetaram conteúdo malicioso.`,
+        medium:`${attrs.stats.suspicious||0} motor(es) assinalaram isto como suspeito.`,
+        low:'Nenhum motor de antivírus detetou ameaças.'
+      };
+      const local = localUrlAnalysis(url);
+      const vtLink = `https://www.virustotal.com/gui/url/${btoa(url).replace(/=/g,'').slice(0,64)}`;
+      renderResult('url', risk, verdicts[risk], hints[risk],
+        renderVtStats(attrs.stats, sub.data.id, 'url') +
+        renderEngines(attrs.results) +
+        (local.indicators.length ? renderLocalIndicators(local.indicators) : '') +
+        `<a href="${vtLink}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:rgba(255,255,255,.4);margin-top:16px;text-decoration:none">↗ Ver relatório completo no VirusTotal</a>`
+      );
+      addHistory('url', url, risk);
+    } catch(vtErr) {
+      const local = localUrlAnalysis(url);
+      renderResult('url', local.risk,
+        local.risk==='high'?'Parece suspeito.':local.risk==='medium'?'Alguns sinais de alerta.':'Parece seguro.',
+        vtErr.isCors?'VirusTotal indisponível (CORS) — análise local.':vtErr.message,
+        (vtErr.isCors ? corsWarning('O browser bloqueou a ligação ao VirusTotal. A análise abaixo é feita localmente.') : '') +
+        renderLocalIndicators(local.indicators)
+      );
+      addHistory('url', url, local.risk);
+    }
+  } catch(e) {
+    err.textContent=e.message; err.style.display='block';
+  } finally {
+    btn.disabled=false; loader.style.display='none'; pbarDone();
+  }
+}
+
+function localUrlAnalysis(url) {
+  const indicators=[];
+  try {
+    const u = new URL(url.startsWith('http')?url:'https://'+url);
+    if(u.protocol==='http:') indicators.push('Protocolo HTTP sem encriptação (não HTTPS)');
+    if(/^\d+\.\d+\.\d+\.\d+/.test(u.hostname)) indicators.push('O host é um endereço IP direto — sinal suspeito');
+    ['.xyz','.top','.click','.gq','.tk','.ml','.cf','.work','.loan','.win'].forEach(t=>{ if(u.hostname.endsWith(t)) indicators.push('Extensão de domínio frequentemente usada em fraude ('+u.hostname.split('.').pop()+')'); });
+    ['paypal','amazon','google','microsoft','apple','facebook','netflix','mbway','ctt','bankinter','cgd','millennium'].forEach(b=>{
+      const m=u.hostname.split('.').slice(-3).join('.');
+      if(m.includes(b)&&!m.startsWith(b+'.com')&&!m.startsWith('www.'+b)) indicators.push('Possível imitação da marca "'+b+'"');
+    });
+    if(url.includes('@')) indicators.push('Símbolo @ no URL — tática para esconder o destino real');
+    if(url.length>100) indicators.push('URL muito longo ('+url.length+' carateres)');
+  } catch {}
+  return { risk: indicators.length>=3?'high':indicators.length>=1?'medium':'low', indicators };
+}
+
+/* ═══════════════════════════════════════
+   MESSAGE ANALYSIS
+═══════════════════════════════════════ */
+async function analyzeMsg() {
+  const text = document.getElementById('msg-inp').value.trim();
+  if (!text) return;
+  const btn=document.getElementById('msg-btn'), loader=document.getElementById('msg-loader'),
+        res=document.getElementById('msg-res'), err=document.getElementById('msg-err');
+  const setStep = t => document.getElementById('msg-loader-step').textContent = t;
+  btn.disabled=true; res.style.display='none'; err.style.display='none';
+  loader.style.display='flex'; pbarStart();
+  try {
+    const local = localMsgAnalysis(text);
+    const urls = [...new Set((text.match(/https?:\/\/[^\s"'<>)\]]+/gi)||[]))];
+    let vtHtml='', maxRisk=local.risk, corsBlocked=false;
+    for (const u of urls.slice(0,3)) {
+      try {
+        const sub = await vtPost('/urls','url='+encodeURIComponent(u));
+        const attrs = await waitAnalysis(sub.data.id, setStep);
+        const uRisk = getVtRisk(attrs.stats);
+        if(uRisk==='high') maxRisk='high'; else if(uRisk==='medium'&&maxRisk==='low') maxRisk='medium';
+        vtHtml += `<div style="margin-bottom:14px"><div style="font-size:10.5px;color:rgba(255,255,255,.3);uppercase;letter-spacing:.1em;margin-bottom:6px">Link: ${esc(u.slice(0,55))}${u.length>55?'…':''}</div>${renderVtStats(attrs.stats,sub.data.id,'url')}${renderEngines(attrs.results)}</div>`;
+      } catch(e2) { if(e2.isCors){corsBlocked=true;break;} }
+    }
+    if(corsBlocked) vtHtml = corsWarning('O browser bloqueou a ligação à API (CORS). A análise abaixo é local.');
+    const vd = maxRisk==='high'?'Muito suspeito — não sigas.':maxRisk==='medium'?'Alguns sinais de alerta.':'Parece legítimo.';
+    const ht = maxRisk==='high'?'Detetámos sinais de phishing nesta mensagem.':maxRisk==='medium'?'Age com precaução antes de clicar ou responder.':'Não detetámos padrões de fraude evidentes.';
+    renderResult('msg', maxRisk, vd, ht, vtHtml + renderLocalIndicators(local.indicators));
+    addHistory('msg', text.slice(0,80), maxRisk);
+  } catch(e) {
+    err.textContent=e.message; err.style.display='block';
+  } finally {
+    btn.disabled=false; loader.style.display='none'; pbarDone();
+  }
+}
+function localMsgAnalysis(text) {
+  const indicators=[], t=text.toLowerCase();
+  if(/\burgente\b|\bimediatamente\b|\bagora mesmo\b|\bdias?\b.*\bexpirar\b|\bsuspend\b/.test(t)) indicators.push('"URGENTE" ou linguagem de pressão');
+  if(/password|palavra.passe|pin\b|credencial|confirme.*conta|valide.*dados/.test(t)) indicators.push('Pedido de password ou dados sensíveis');
+  if(/caro cliente|prezado|dear customer|olá cliente/.test(t)) indicators.push('Saudação genérica — mensagens legítimas usam o teu nome');
+  if(/bit\.ly|tinyurl|goo\.gl|t\.co|ow\.ly|rb\.gy|cutt\.ly/.test(t)) indicators.push('Link encurtado — esconde o destino real');
+  if(/grátis|ganhou|prémio|parabéns|selecionado|recompensa/.test(t)) indicators.push('Promessa de prémio ou oferta — phishing clássico');
+  return { risk: indicators.length>=3?'high':indicators.length>=1?'medium':'low', indicators };
+}
+
+/* ═══════════════════════════════════════
+   FILE ANALYSIS
+═══════════════════════════════════════ */
+async function analyzeFile() {
+  const file = document.getElementById('file-inp').files[0];
+  if (!file) return;
+  if (file.size>32*1024*1024) { alert('Ficheiro demasiado grande (máx. 32MB).'); return; }
+  const btn=document.getElementById('file-btn'), loader=document.getElementById('file-loader'),
+        res=document.getElementById('file-res'), err=document.getElementById('file-err');
+  const setStep = t => document.getElementById('file-loader-step').textContent = t;
+  btn.disabled=true; res.style.display='none'; err.style.display='none';
+  loader.style.display='flex'; pbarStart();
+  try {
+    setStep('A calcular SHA-256...');
+    const hash = await sha256(file);
+    setStep('A verificar hash no VirusTotal...');
+    let attrs=null, corsBlocked=false;
+    try {
+      try { const k=await vtGet('/files/'+hash); attrs=k.data.attributes; }
+      catch(e2) {
+        if(e2.isCors) throw e2;
+        setStep('A fazer upload ('+(file.size/1024).toFixed(0)+' KB)...');
+        const fd=new FormData(); fd.append('file',file);
+        const sub=await vtPost('/files',null,fd);
+        attrs=await waitAnalysis(sub.data.id,setStep); attrs.sha256=hash;
+      }
+    } catch(vtErr) { if(vtErr.isCors) corsBlocked=true; else throw vtErr; }
+    if (corsBlocked||!attrs) {
+      renderResult('file','medium','Não foi possível verificar.','O browser bloqueou a ligação ao VirusTotal (CORS).',
+        corsWarning('Para análise real, usa virustotal.com diretamente.\n\nSHA-256:\n'+hash));
+      addHistory('file',file.name,'medium');
+    } else {
+      const stats=attrs.last_analysis_stats||attrs.stats||{};
+      const risk=getVtRisk(stats);
+      const vd={high:'Cuidado — ameaça detetada.',medium:'Suspeito — tem cuidado.',low:'Parece seguro.'};
+      const ht={high:`${stats.malicious||0} motor(es) detetaram malware.`,medium:`${stats.suspicious||0} motor(es) assinalaram como suspeito.`,low:'Nenhum motor de antivírus detetou ameaças.'};
+      renderResult('file',risk,vd[risk],ht[risk],
+        renderVtStats(stats,'file-'+hash,'file') +
+        renderEngines(attrs.last_analysis_results||attrs.results) +
+        `<a href="https://www.virustotal.com/gui/file/${hash}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:rgba(255,255,255,.4);margin-top:16px;text-decoration:none">↗ Ver relatório no VirusTotal</a>
+        <div style="margin-top:10px;font-size:11.5px;color:rgba(255,255,255,.25)">SHA-256: <span style="font-family:monospace;word-break:break-all">${hash}</span></div>`
+      );
+      addHistory('file',file.name,risk);
+    }
+  } catch(e) {
+    err.textContent=e.message; err.style.display='block';
+  } finally {
+    btn.disabled=false; loader.style.display='none'; pbarDone();
+  }
+}
+async function sha256(file) {
+  const buf=await file.arrayBuffer(), digest=await crypto.subtle.digest('SHA-256',buf);
+  return Array.from(new Uint8Array(digest)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+/* ═══════════════════════════════════════
+   NAVIGATION
+═══════════════════════════════════════ */
+const PAGES = ['home','url','msg','file','hist'];
+let transitioning = false;
+function go(id) {
+  if (transitioning) return;
+  const cur = document.querySelector('.pg.on'), next = document.getElementById('pg-'+id);
+  if (!next||(cur&&cur.id==='pg-'+id)) return;
+  PAGES.forEach(p => {
+    const el=document.getElementById('nl-'+p);
+    if(el) el.classList.toggle('font-semibold !text-white',p===id);
+  });
+  if (!cur) { next.classList.add('on'); return; }
+  transitioning=true;
+  cur.classList.add('pg-leaving');
+  setTimeout(()=>{
+    cur.classList.remove('on','pg-leaving');
+    next.classList.add('on','pg-entering');
+    window.scrollTo({top:0});
+    setTimeout(()=>{ next.classList.remove('pg-entering'); transitioning=false; },400);
+  },220);
+}
+let drawerOpen=false;
+function toggleDrawer() {
+  drawerOpen=!drawerOpen;
+  const d=document.getElementById('drawer');
+  d.style.display=drawerOpen?'flex':'none';
+}
+
+/* ═══════════════════════════════════════
+   CLOCK + INIT
+═══════════════════════════════════════ */
+function tick() {
+  const n=new Date(), m=n.getMinutes().toString().padStart(2,'0');
+  let h=n.getHours(), ap=h>=12?'PM':'AM'; h=h%12||12;
+  document.getElementById('clk').textContent=h+':'+m+' '+ap;
+}
+setInterval(tick,30000); tick();
+updateStats(); renderHistory();
+
+/* ═══════════════════════════════════════
+   BACKGROUND CANVAS — WAVE ENGINE
+═══════════════════════════════════════ */
+(function(){
+  const canvas = document.getElementById('bg-canvas');
+  const ctx    = canvas.getContext('2d');
+  let W, H, t = 0, mouse = {x:.5, y:.5};
+
+  function resize(){ W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+  window.addEventListener('resize', resize); resize();
+  window.addEventListener('mousemove', e => { mouse.x = e.clientX/W; mouse.y = e.clientY/H; }, {passive:true});
+
+  /* ── wave bands (filled) ── */
+  const BANDS = [
+    {yOff:.15, freq1:0.0042, freq2:0.0019, speed1:.38, speed2:.22, amp1:.13, amp2:.07, phase:0,       color:[255,30,0],   alpha:.18, fill:.07},
+    {yOff:.30, freq1:0.0038, freq2:0.0023, speed1:.29, speed2:.31, amp1:.10, amp2:.09, phase:1.2,     color:[255,255,255],alpha:.10, fill:.04},
+    {yOff:.45, freq1:0.0051, freq2:0.0014, speed1:.44, speed2:.18, amp1:.16, amp2:.06, phase:2.5,     color:[255,40,0],   alpha:.22, fill:.10},
+    {yOff:.58, freq1:0.0033, freq2:0.0027, speed1:.22, speed2:.40, amp1:.11, amp2:.10, phase:3.8,     color:[255,255,255],alpha:.08, fill:.03},
+    {yOff:.72, freq1:0.0047, freq2:0.0018, speed1:.50, speed2:.26, amp1:.14, amp2:.08, phase:5.1,     color:[220,20,0],   alpha:.20, fill:.09},
+    {yOff:.88, freq1:0.0036, freq2:0.0031, speed1:.33, speed2:.37, amp1:.09, amp2:.11, phase:0.7,     color:[255,255,255],alpha:.07, fill:.03},
+    /* bold accent waves */
+    {yOff:.22, freq1:0.0060, freq2:0.0012, speed1:.60, speed2:.15, amp1:.20, amp2:.05, phase:1.8,     color:[255,60,0],   alpha:.30, fill:.14, bold:true},
+    {yOff:.65, freq1:0.0055, freq2:0.0016, speed1:.55, speed2:.20, amp1:.18, amp2:.07, phase:4.3,     color:[255,60,0],   alpha:.28, fill:.12, bold:true},
+  ];
+
+  /* ── aurora glows ── */
+  const GLOWS = [
+    {x:.2,  y:.3,  rx:.35, ry:.28, speed:.0004, phase:0,   c:[255,30,0],   a:.13},
+    {x:.8,  y:.6,  rx:.30, ry:.32, speed:.0005, phase:2.1, c:[255,255,255],a:.06},
+    {x:.5,  y:.15, rx:.45, ry:.22, speed:.0003, phase:4.5, c:[200,15,0],   a:.10},
+    {x:.15, y:.75, rx:.28, ry:.30, speed:.0006, phase:1.3, c:[255,50,0],   a:.14},
+    {x:.85, y:.2,  rx:.32, ry:.25, speed:.0004, phase:3.7, c:[255,30,0],   a:.11},
+  ];
+
+  /* ── particles ── */
+  const PARTS = Array.from({length:60}, ()=>({
+    x:Math.random(), y:Math.random(),
+    vx:(Math.random()-.5)*.0008, vy:-(Math.random()*.0012+.0002),
+    size: .8+Math.random()*2.2,
+    life:Math.random(), maxLife:.5+Math.random()*.8,
+    red: Math.random()>.35,
+  }));
+
+  /* ── ring pulses ── */
+  const RINGS = Array.from({length:6}, (_,i)=>({
+    x:.5, y:.45, r:80+i*90, phase:i*1.1, speed:.0008,
+    red: i%2===0,
+  }));
+
+  /* helpers */
+  function waveY(b, x, tt) {
+    return b.yOff*H
+      + Math.sin(x*b.freq1*W + tt*b.speed1 + b.phase) * b.amp1*H
+      + Math.sin(x*b.freq2*W + tt*b.speed2 + b.phase*1.4) * b.amp2*H
+      + (mouse.y-.5)*30;
+  }
+
+  function drawWaveFill(b, tt) {
+    const [r,g,bl] = b.color;
+    ctx.beginPath();
+    ctx.moveTo(0, H);
+    for (let x=0; x<=W; x+=4) ctx.lineTo(x, waveY(b, x, tt));
+    ctx.lineTo(W, H); ctx.closePath();
+    const grad = ctx.createLinearGradient(0, b.yOff*H - b.amp1*H, 0, H);
+    grad.addColorStop(0,   `rgba(${r},${g},${bl},${b.fill})`);
+    grad.addColorStop(.5,  `rgba(${r},${g},${bl},${b.fill*.4})`);
+    grad.addColorStop(1,   `rgba(${r},${g},${bl},0)`);
+    ctx.fillStyle = grad;
+    ctx.fill();
+  }
+
+  function drawWaveLine(b, tt) {
+    const [r,g,bl] = b.color;
+    ctx.beginPath();
+    ctx.lineWidth = b.bold ? 2.2 : 1.1;
+    ctx.strokeStyle = `rgba(${r},${g},${bl},${b.alpha})`;
+    for (let x=0; x<=W; x+=3) {
+      const y = waveY(b, x, tt);
+      x===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+    /* glow pass for bold */
+    if (b.bold) {
+      ctx.save();
+      ctx.lineWidth = 6;
+      ctx.strokeStyle = `rgba(${r},${g},${bl},${b.alpha*.3})`;
+      ctx.filter = 'blur(4px)';
+      ctx.beginPath();
+      for (let x=0; x<=W; x+=6) {
+        const y = waveY(b, x, tt);
+        x===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  function draw() {
+    t += 1;
+    ctx.clearRect(0,0,W,H);
+
+    /* 1 ── base */
+    ctx.fillStyle='#030303'; ctx.fillRect(0,0,W,H);
+
+    /* 2 ── aurora glows */
+    GLOWS.forEach(g => {
+      const ox = Math.sin(t*g.speed*1000+g.phase)*.06;
+      const oy = Math.cos(t*g.speed*800+g.phase)*.05;
+      const px=(g.x+ox)*W, py=(g.y+oy)*H;
+      const pulse = .85 + Math.sin(t*g.speed*1400+g.phase)*0.15;
+      const grad = ctx.createRadialGradient(px,py,0,px,py,g.rx*W*pulse);
+      const [r,gv,b]= g.c;
+      grad.addColorStop(0,  `rgba(${r},${gv},${b},${g.a*1.8})`);
+      grad.addColorStop(.4, `rgba(${r},${gv},${b},${g.a})`);
+      grad.addColorStop(1,  `rgba(${r},${gv},${b},0)`);
+      ctx.save(); ctx.scale(1, g.ry/g.rx);
+      ctx.beginPath(); ctx.arc(px, py*(g.rx/g.ry), g.rx*W*pulse, 0, Math.PI*2);
+      ctx.fillStyle=grad; ctx.fill(); ctx.restore();
+    });
+
+    /* 3 ── wave fills (back to front) */
+    [...BANDS].reverse().forEach(b => drawWaveFill(b, t));
+
+    /* 4 ── wave lines */
+    BANDS.forEach(b => drawWaveLine(b, t));
+
+    /* 5 ── ring pulses */
+    RINGS.forEach(rg => {
+      const pulse = Math.abs(Math.sin(t*rg.speed*1000+rg.phase));
+      const r = rg.r + pulse*40;
+      const a = (1-pulse)*(rg.red?.18:.10);
+      ctx.beginPath();
+      ctx.arc(rg.x*W, rg.y*H, r, 0, Math.PI*2);
+      ctx.strokeStyle = rg.red ? `rgba(255,40,0,${a})` : `rgba(255,255,255,${a})`;
+      ctx.lineWidth = rg.red ? 1.5 : 1;
+      ctx.stroke();
+      /* second inner ring */
+      if (pulse > .3) {
+        ctx.beginPath();
+        ctx.arc(rg.x*W, rg.y*H, r*.6, 0, Math.PI*2);
+        ctx.strokeStyle = rg.red ? `rgba(255,40,0,${a*.5})` : `rgba(255,255,255,${a*.5})`;
+        ctx.lineWidth = .6;
+        ctx.stroke();
+      }
+    });
+
+    /* 6 ── mouse-reactive centre glow */
+    const mg = ctx.createRadialGradient(mouse.x*W, mouse.y*H, 0, mouse.x*W, mouse.y*H, W*.38);
+    mg.addColorStop(0,  'rgba(255,40,0,0.10)');
+    mg.addColorStop(.5, 'rgba(255,40,0,0.04)');
+    mg.addColorStop(1,  'rgba(0,0,0,0)');
+    ctx.fillStyle=mg; ctx.fillRect(0,0,W,H);
+
+    /* 7 ── particles (rising embers) */
+    PARTS.forEach(p => {
+      p.x += p.vx + Math.sin(t*.012+p.y*10)*.0003;
+      p.y += p.vy;
+      p.life += .004;
+      if (p.life>p.maxLife||p.y<0) {
+        p.x=Math.random(); p.y=1; p.life=0;
+        p.vx=(Math.random()-.5)*.0008; p.vy=-(Math.random()*.0012+.0002);
+        p.red=Math.random()>.35;
+      }
+      const fade = Math.sin(p.life/p.maxLife*Math.PI);
+      ctx.beginPath();
+      ctx.arc(p.x*W, p.y*H, p.size*(1+fade*.5), 0, Math.PI*2);
+      ctx.fillStyle = p.red
+        ? `rgba(255,50,0,${.55*fade})`
+        : `rgba(255,255,255,${.35*fade})`;
+      ctx.fill();
+      /* tiny glow */
+      if (p.size>1.5 && fade>.4) {
+        ctx.beginPath();
+        ctx.arc(p.x*W, p.y*H, p.size*3, 0, Math.PI*2);
+        ctx.fillStyle = p.red
+          ? `rgba(255,50,0,${.08*fade})`
+          : `rgba(255,255,255,${.05*fade})`;
+        ctx.fill();
+      }
+    });
+
+    /* 8 ── scanline texture */
+    for (let sy=0; sy<H; sy+=3) {
+      ctx.fillStyle = 'rgba(0,0,0,0.04)';
+      ctx.fillRect(0, sy, W, 1);
+    }
+
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+/* ═══════════════════════════════════════
+   HAND ANIMATION
+═══════════════════════════════════════ */
+(function(){
+  const handL = document.getElementById('hand-left');
+  const handR = document.getElementById('hand-right');
+  if (!handL || !handR) return;
+
+  let currentL = 0, currentR = 0;
+  let targetL  = 0, targetR  = 0;
+  let idleT = 0;
+
+  function getPillCenter() {
+    const pill = document.getElementById('hero-inp');
+    if (!pill) return null;
+    const r = pill.closest('div').getBoundingClientRect();
+    return { x: r.left + r.width/2, y: r.top + r.height/2 };
+  }
+
+  function getProximity(mx, my) {
+    const c = getPillCenter();
+    if (!c) return 0;
+    const dx = mx - c.x, dy = my - c.y;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    const maxDist = Math.max(window.innerWidth, window.innerHeight) * 0.55;
+    return Math.max(0, 1 - dist / maxDist);
+  }
+
+  window.addEventListener('mousemove', e => {
+    const prox = getProximity(e.clientX, e.clientY);
+    const slide = prox * 230;
+    targetL =  slide;
+    targetR = -slide;
+  }, {passive:true});
+
+  function loop() {
+    idleT += 0.016;
+    const idleFloat = Math.sin(idleT) * 9 + Math.sin(idleT*1.7)*.3*4;
+    currentL += (targetL - currentL) * 0.065;
+    currentR += (targetR - currentR) * 0.065;
+    const prox = Math.abs(currentL) / 230;
+    const lift = prox * 35;
+    handL.style.transform = `translateX(${currentL}px) translateY(${idleFloat - lift}px)`;
+    handR.style.transform = `scaleX(-1) translateX(${-currentR}px) translateY(${idleFloat * 0.85 - lift}px)`;
+    const glowStr = Math.max(0, prox - 0.7) * 3.3;
+    const g = glowStr > 0
+      ? `drop-shadow(0 0 ${32+glowStr*50}px rgba(255,50,0,${.55+glowStr*.45})) drop-shadow(0 0 ${8+glowStr*24}px rgba(255,130,40,${.3+glowStr*.55}))`
+      : 'drop-shadow(0 0 32px rgba(200,20,0,.55)) drop-shadow(0 0 8px rgba(255,60,0,.3))';
+    handL.querySelector('svg').style.filter = g;
+    handR.querySelector('svg').style.filter = g;
+    requestAnimationFrame(loop);
+  }
+  loop();
+})();
+</script>
