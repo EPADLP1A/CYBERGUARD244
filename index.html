@@ -834,7 +834,7 @@ function go(id) {
   if (!next||(cur&&cur.id==='pg-'+id)) return;
   PAGES.forEach(p => {
     const el=document.getElementById('nl-'+p);
-    if(el) el.classList.toggle('font-semibold !text-white',p===id);
+    if(el) { el.classList.toggle('font-semibold',p===id); el.style.color = p===id ? 'white' : ''; }
   });
   if (!cur) { next.classList.add('on'); return; }
   transitioning=true;
