@@ -9,10 +9,16 @@
         {{ analyses | length }} análise(s) registada(s)
     </p>
     {% if analyses %}
-    <button class="btn-analyze" onclick="clearHistory()"
-            style="background: #2a0d0d; border: 1px solid rgba(239,68,68,0.3);">
-        <i class='bx bx-trash'></i> Apagar Histórico
-    </button>
+    <div style="display:flex; gap:10px;">
+        <a href="/api/history/export/csv" class="btn-analyze"
+           style="text-decoration:none; background: #0d1f2a; border: 1px solid rgba(59,130,246,0.3);">
+            <i class='bx bx-download'></i> Exportar CSV
+        </a>
+        <button class="btn-analyze" onclick="clearHistory()"
+                style="background: #2a0d0d; border: 1px solid rgba(239,68,68,0.3);">
+            <i class='bx bx-trash'></i> Apagar Histórico
+        </button>
+    </div>
     {% endif %}
 </div>
 

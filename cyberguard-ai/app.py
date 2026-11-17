@@ -1,5 +1,7 @@
 import os
-from flask import Flask, render_template, request, jsonify
+import csv
+import io
+from flask import Flask, render_template, request, jsonify, Response
 from dotenv import load_dotenv
 from werkzeug.utils import secure_filename
 
@@ -150,6 +152,30 @@ def api_history():
 def api_clear_history():
     clear_all_analyses()
     return jsonify({'message': 'Histórico apagado com sucesso'}), 200
+
+
+@app.route('/api/history/export/csv', methods=['GET'])
+def api_export_history_csv():
+    """Exporta o histórico de análises como ficheiro CSV para download."""
+    analyses = get_all_analyses(limit=10000)
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['id', 'tipo', 'conteudo', 'risco', 'indicadores', 'data'])
+    for a in analyses:
+        writer.writerow([
+            a['id'],
+            a['analysis_type'],
+            a['content'],
+            a['risk_level'],
+            a['indicators'],
+            a['created_at'],
+        ])
+    csv_data = output.getvalue()
+    return Response(
+        csv_data,
+        mimetype='text/csv',
+        headers={'Content-Disposition': 'attachment; filename=historico_cyberguard.csv'}
+    )
 
 
 # ─── Erros ─────────────────────────────────────────────────────────────────
