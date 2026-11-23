@@ -1,0 +1,29 @@
+# Lista de URLs maliciosos de referência para testar o url_analyzer.
+#
+# Estes URLs seguem os padrões mais comuns encontrados em feeds públicos de
+# phishing (PhishTank, OpenPhish, URLhaus). Os domínios são exemplos
+# representativos — NÃO abrir no browser.
+#
+# Formato: <url>  # <técnica usada>
+# Linhas começadas por "#" e linhas vazias são ignoradas.
+
+http://paypal-account-verify.xyz/login                     # marca + TLD abusado + HTTP
+http://secure-paypal.com.account-update.top/signin         # marca + muitos subdomínios + TLD
+https://appleid.apple.com.verify-account.click/            # imitação Apple + subdomínios
+http://microsoft-office365-login.tk/owa/                   # marca + TLD gratuito
+http://192.168.10.45/banco/login.php                       # IP direto + HTTP
+http://185.234.72.11/netflix/update-payment                # IP + marca no caminho
+http://www.cgd.pt@login-cgd-seguro.ml/                     # truque "@" + marca + TLD
+http://amazon-prize-winner.gq/claim?id=88231               # marca + TLD gratuito
+https://netflix-billing-update.cf/account                  # marca + TLD gratuito
+http://facebook-security-check.ga/recover                  # marca + TLD gratuito
+https://login.microsoftonline.com.auth-session.work/       # imitação Microsoft + subdomínios + TLD
+http://instagram-verify-badge.loan/apply                   # marca + TLD
+http://millennium-bcp-acesso.xyz/particulares              # banco PT + TLD
+http://santander-totta-seguranca.top/validar               # banco PT + TLD
+http://bpi-net-online.click/login                          # banco PT + TLD
+http://user:pass@91.214.124.20/google/drive/share          # "@" + IP
+http://google.com.drive.docs.share.file-view.xyz/d/1aBcD    # muitos subdomínios + TLD
+http://banco-portugal-reembolso.tk/irs                     # banco + TLD
+https://paypal.com-resolution-center.info/webapps/mpp/home?country=PT&session=a8f7d6e5c4b3a2918273645546372819283746556473829182736455647382918273645  # marca + URL longo
+http://10.0.0.1:8080/admin/login                           # IP + porta + HTTP
