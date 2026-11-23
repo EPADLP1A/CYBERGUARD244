@@ -225,6 +225,11 @@ input[type="file"].form-input::file-selector-button {
 .btn-analyze:hover    { background: #ff4d70; }
 .btn-analyze:disabled { background: #3d1020; cursor: not-allowed; opacity: 0.7; }
 
+.form-input.input-invalid {
+    border-color: var(--risk-high);
+    box-shadow: 0 0 0 3px rgba(239,68,68,0.15);
+}
+
 .error-msg {
     display: none;
     color: var(--risk-high);
