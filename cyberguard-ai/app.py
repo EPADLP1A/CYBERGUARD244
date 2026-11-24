@@ -8,7 +8,7 @@ from werkzeug.utils import secure_filename
 load_dotenv()
 
 from database.db import init_db, save_analysis, get_all_analyses, clear_all_analyses
-from services.url_analyzer import analyze_url
+from services.url_analyzer import analyze_url, validate_url
 from services.message_analyzer import analyze_message
 from services.file_analyzer import analyze_file, validate_upload
 from services.claude_service import get_ai_explanation
@@ -56,11 +56,11 @@ def api_analyze_url():
     if not data or 'url' not in data:
         return jsonify({'error': 'URL não fornecido'}), 400
 
-    url = data['url'].strip()
-    if not url:
-        return jsonify({'error': 'URL não pode estar vazio'}), 400
-    if len(url) > 2000:
-        return jsonify({'error': 'URL demasiado longo'}), 400
+    # Validação server-side (nunca confiar apenas na validação do browser)
+    valid, result_or_error = validate_url(data['url'])
+    if not valid:
+        return jsonify({'error': result_or_error}), 400
+    url = result_or_error
 
     result = analyze_url(url)
     explanation = get_ai_explanation('URL', result['indicators'], url)

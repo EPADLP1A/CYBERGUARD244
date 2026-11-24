@@ -37,6 +37,40 @@ function clearError() {
     if (el) el.style.display = 'none';
 }
 
+// ── Validação de URL (client-side) ────────────────
+// Espelha services/url_analyzer.py::validate_url — o servidor volta sempre
+// a validar, isto serve apenas para dar feedback imediato ao utilizador.
+
+const URL_MAX_LENGTH = 2000;
+
+function validateUrlInput(url) {
+    if (!url) return 'Por favor, insere um URL para analisar.';
+    if (url.length > URL_MAX_LENGTH) return `URL demasiado longo (máximo ${URL_MAX_LENGTH} caracteres).`;
+    if (/\s/.test(url)) return 'O URL não pode conter espaços.';
+
+    const scheme = url.match(/^([a-zA-Z][a-zA-Z0-9+.-]*):/);
+    if (scheme && !['http', 'https'].includes(scheme[1].toLowerCase()) && !/^[^/]+:\d+/.test(url)) {
+        return 'Apenas são suportados URLs http:// ou https://';
+    }
+
+    let parsed;
+    try {
+        parsed = new URL(/^https?:\/\//i.test(url) ? url : 'http://' + url);
+    } catch {
+        return 'Formato de URL inválido.';
+    }
+    const host = parsed.hostname;
+    if (!host) return 'O URL não tem um domínio válido.';
+    if (host !== 'localhost' && !host.includes('.')) return 'O domínio do URL não é válido (ex.: exemplo.com).';
+    return null; // válido
+}
+
+function setUrlInputInvalid(input, invalid) {
+    if (!input) return;
+    input.classList.toggle('input-invalid', invalid);
+    input.setAttribute('aria-invalid', invalid ? 'true' : 'false');
+}
+
 // ── Análise de URL ────────────────────────────────
 
 async function analyzeUrl() {
@@ -44,7 +78,14 @@ async function analyzeUrl() {
     const btn = document.getElementById('analyze-btn');
     const url = urlInput.value.trim();
 
-    if (!url) { showError('Por favor, insere um URL para analisar.'); return; }
+    const validationError = validateUrlInput(url);
+    if (validationError) {
+        showError(validationError);
+        setUrlInputInvalid(urlInput, true);
+        urlInput.focus();
+        return;
+    }
+    setUrlInputInvalid(urlInput, false);
 
     showLoading(btn);
     clearError();
@@ -110,5 +151,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const urlInput = document.getElementById('url-input');
     if (urlInput) {
         urlInput.addEventListener('keydown', e => { if (e.key === 'Enter') analyzeUrl(); });
+        // Limpa o estado de erro assim que o utilizador volta a escrever
+        urlInput.addEventListener('input', () => { setUrlInputInvalid(urlInput, false); clearError(); });
     }
 });

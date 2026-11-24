@@ -662,9 +662,10 @@ function corsWarning(msg) {
 ═══════════════════════════════════════ */
 async function analyzeUrl() {
   const url = document.getElementById('url-inp').value.trim();
-  if (!url) return;
   const btn=document.getElementById('url-btn'), loader=document.getElementById('url-loader'),
         res=document.getElementById('url-res'), err=document.getElementById('url-err');
+  const invalid = validateUrlInput(url);
+  if (invalid) { res.style.display='none'; err.textContent=invalid; err.style.display='block'; return; }
   const setStep = t => document.getElementById('url-loader-step').textContent = t;
   btn.disabled=true; res.style.display='none'; err.style.display='none';
   loader.style.display='flex'; pbarStart();
@@ -704,6 +705,22 @@ async function analyzeUrl() {
   } finally {
     btn.disabled=false; loader.style.display='none'; pbarDone();
   }
+}
+
+// Validação client-side do campo de URL (espelha validate_url() do backend Flask)
+function validateUrlInput(url) {
+  if (!url) return 'Por favor, insere um URL para analisar.';
+  if (url.length > 2000) return 'URL demasiado longo (máximo 2000 caracteres).';
+  if (/\s/.test(url)) return 'O URL não pode conter espaços.';
+  const scheme = url.match(/^([a-zA-Z][a-zA-Z0-9+.-]*):/);
+  if (scheme && !['http','https'].includes(scheme[1].toLowerCase()) && !/^[^/]+:\d+/.test(url))
+    return 'Apenas são suportados URLs http:// ou https://';
+  let u;
+  try { u = new URL(/^https?:\/\//i.test(url) ? url : 'http://' + url); }
+  catch { return 'Formato de URL inválido.'; }
+  if (!u.hostname || (u.hostname !== 'localhost' && !u.hostname.includes('.')))
+    return 'O domínio do URL não é válido (ex.: exemplo.com).';
+  return null;
 }
 
 function localUrlAnalysis(url) {

@@ -1,0 +1,13 @@
+# URLs legítimos — o analisador NÃO deve classificá-los como risco elevado.
+# Formato: <url>
+
+https://google.com
+https://www.google.com/search?q=cyberguard
+https://paypal.com
+https://www.paypal.com/pt/home
+https://www.microsoft.com
+https://apple.com
+https://www.amazon.com
+https://github.com/EPADLP1A/CYBERGUARD244
+https://www.wikipedia.org
+https://www.publico.pt

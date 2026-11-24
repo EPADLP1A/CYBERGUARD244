@@ -17,10 +17,13 @@
                 placeholder="https://exemplo.com ou copia o URL aqui..."
                 autocomplete="off"
                 spellcheck="false"
+                maxlength="2000"
+                required
+                aria-describedby="error-msg"
             >
         </div>
 
-        <div id="error-msg" class="error-msg"></div>
+        <div id="error-msg" class="error-msg" role="alert"></div>
 
         <button class="btn-analyze" id="analyze-btn" onclick="analyzeUrl()">
             <i class='bx bx-search-alt'></i> Analisar URL
